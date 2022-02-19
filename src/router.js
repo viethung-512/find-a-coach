@@ -26,6 +26,7 @@ export const router = createRouter({
         {
           path: 'contact',
           component: ContactCoach,
+          props: true,
         },
       ],
     },

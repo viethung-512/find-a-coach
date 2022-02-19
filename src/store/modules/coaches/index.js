@@ -2,6 +2,7 @@ export default {
   namespaced: true,
   state() {
     return {
+      lastFetch: null,
       coaches: [
         {
           id: 'c1',
@@ -28,11 +29,17 @@ export default {
     registerCoach(state, payload) {
       state.coaches.push(payload);
     },
+    setCoaches(state, payload) {
+      state.coaches = payload;
+    },
+    setFetchTimestamp(state) {
+      state.lastFetch = new Date().getTime();
+    },
   },
   actions: {
-    registerCoach(context, payload) {
+    async registerCoach(context, payload) {
+      const userId = context.rootGetters.userId;
       const coachData = {
-        id: context.rootGetters.userId,
         firstName: payload.firstName,
         lastName: payload.lastName,
         description: payload.description,
@@ -40,7 +47,55 @@ export default {
         areas: payload.areas,
       };
 
-      context.commit('registerCoach', coachData);
+      const response = await fetch(
+        `https://vue-http-demo-8d082-default-rtdb.firebaseio.com/coaches/${userId}.json`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(coachData),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (response.ok) {
+        context.commit('registerCoach', { ...coachData, id: userId });
+        return;
+      }
+
+      // throw new Error()
+    },
+    async loadCoaches(context, payload) {
+      if (!payload.forceRefresh && !context.getters.shouldUpdate) {
+        return;
+      }
+
+      const response = await fetch(
+        `https://vue-http-demo-8d082-default-rtdb.firebaseio.com/coaches.json`
+      );
+
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to fetch!');
+      }
+
+      const coaches = [];
+      for (const key in responseData) {
+        if (Object.hasOwnProperty.call(responseData, key)) {
+          const element = responseData[key];
+
+          coaches.push({
+            id: key,
+            firstName: element.firstName,
+            lastName: element.lastName,
+            description: element.description,
+            hourlyRate: element.hourlyRate,
+            areas: element.areas,
+          });
+        }
+      }
+
+      context.commit('setCoaches', coaches);
+      context.commit('setFetchTimestamp');
     },
   },
   getters: {
@@ -55,6 +110,16 @@ export default {
       const userId = rootGetters.userId;
 
       return coaches.some((c) => c.id.toString() === userId.toString());
+    },
+    shouldUpdate(state) {
+      const lastFetch = state.lastFetch;
+      if (!lastFetch) {
+        return true;
+      }
+
+      const currentTimestamp = new Date().getTime();
+
+      return (currentTimestamp - lastFetch) / 1000 > 60;
     },
   },
 };
