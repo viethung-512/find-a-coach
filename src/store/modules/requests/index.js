@@ -45,8 +45,9 @@ export default {
 
     async loadRequests(context) {
       const coachId = context.rootGetters.userId;
+      const token = context.rootGetters.token;
       const response = await fetch(
-        `https://vue-http-demo-8d082-default-rtdb.firebaseio.com/requests/${coachId}.json`
+        `https://vue-http-demo-8d082-default-rtdb.firebaseio.com/requests/${coachId}.json?auth=${token}`
       );
 
       const responseData = await response.json();
@@ -76,9 +77,7 @@ export default {
     requests(state, _, __, rootGetters) {
       const coachId = rootGetters.userId;
 
-      return state.requests.filter(
-        (rq) => rq.coachId.toString() === coachId.toString()
-      );
+      return state.requests.filter((rq) => rq.coachId === coachId);
     },
     hasRequests(_, getters) {
       return getters.requests && getters.requests.length > 0;

@@ -63,9 +63,7 @@ export default {
     },
   },
   created() {
-    this.selectedCoach = this.coaches.find(
-      (c) => c.id.toString() === this.id.toString()
-    );
+    this.selectedCoach = this.coaches.find((c) => c.id === this.id);
   },
 };
 </script>
